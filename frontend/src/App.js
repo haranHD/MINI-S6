@@ -16,7 +16,7 @@ function App() {
 
   const fetchWeather = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/weather');
+      const res = await axios.get(`${process.env.REACT_APP_URL}/weather`);
       setWeather(res.data);
       updateTimestamp();
     } catch (err) {
@@ -26,7 +26,7 @@ function App() {
 
   const fetchMarketPrices = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/market');
+      const res = await axios.get(`${process.env.REACT_APP_URL}/market`);
       setMarketPrices(res.data.market_prices || []);
       updateTimestamp();
     } catch (err) {
@@ -46,7 +46,7 @@ function App() {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/chat', {
+      const res = await axios.post(`${process.env.REACT_APP_URL}/chat`, {
         question,
         language,
       });
@@ -61,7 +61,7 @@ function App() {
     if (!answer) return;
     try {
       const res = await axios.post(
-        'http://localhost:5000/tts',
+        `${process.env.REACT_APP_URL}/tts`,
         { text: answer, language },
         { responseType: 'blob' }
       );
