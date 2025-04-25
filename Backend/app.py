@@ -8,11 +8,18 @@ import os
 
 app = Flask(__name__)
 CORS(app)
-
 # MongoDB Setup
-client = pymongo.MongoClient("mongodb://localhost:27017/")
-db = client["farming_chatbot"]
-collection = db["faqs"]
+try:
+    client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
+    db = client["farming_chatbot"]
+    collection = db["faqs"]
+    
+    # Test the connection
+    client.server_info()  # Will raise an exception if the connection fails
+    print("✅ Database connected successfully!")
+except Exception as e:
+    print("❌ Failed to connect to the database:", e)
+
 
 # Weather API
 @app.route('/weather')
