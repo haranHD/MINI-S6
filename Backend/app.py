@@ -5,6 +5,14 @@ import pymongo
 from gtts import gTTS
 from deep_translator import GoogleTranslator
 import os
+import google.generativeai as genai
+from pydub import AudioSegment
+from pydub import AudioSegment
+from gtts import gTTS
+
+# Configure Gemini API
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 app = Flask(__name__)
 CORS(app)
@@ -83,37 +91,47 @@ def get_market_prices():
     except Exception as e:
         return jsonify({"error": str(e), "market_prices": []}), 500
 
-# Chat route using MongoDB FAQ lookup
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
         data = request.get_json()
         question = data.get('question', '').strip()
-        language = data.get('language', 'en')
+        language = data.get('language', 'en')  # 'ta' for Tamil
 
         if not question:
             return jsonify({"answer": "Please enter a question."}), 400
 
-        # Translate Tamil question to English before lookup
+        # Step 1: Translate Tamil input to English
         if language == 'ta':
             english_question = GoogleTranslator(source='ta', target='en').translate(question).lower()
         else:
             english_question = question.lower()
 
-        # Search in MongoDB
+        # Step 2: Check MongoDB for matching question
         faq = collection.find_one({"question": {"$regex": english_question, "$options": "i"}})
+
         if faq:
             answer = faq.get('answer', 'No answer found.')
+            source = "database"
         else:
-            answer = "Sorry, I don't have an answer for that question."
+            # Step 3: If not found, use Gemini with brief prompt
+            gemini_prompt = f"Answer this farming question briefly in 2 to 3 short lines with only the most important points: {english_question}"
+            response = model.generate_content(gemini_prompt)
+            answer = response.text.strip()
+            source = "gemini"
 
-        # Translate answer to Tamil if needed
+        # Step 4: Translate answer to Tamil if original question was Tamil
         if language == 'ta':
             answer = GoogleTranslator(source='en', target='ta').translate(answer)
 
-        return jsonify({"answer": answer})
+        return jsonify({
+            "answer": answer,
+            "source": source
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # Text-to-Speech
 @app.route('/tts', methods=['POST'])
