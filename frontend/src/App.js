@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Bot, 
+  Mic, 
+  MicOff, 
+  Globe, 
+  Cloud, 
+  TrendingUp, 
+  RefreshCw, 
+  Sparkles,
+  Leaf,
+  Sun,
+  Droplets,
+  Wind
+} from 'lucide-react';
+import './App.css';
 
 function App() {
   const [question, setQuestion] = useState('');
@@ -8,6 +24,8 @@ function App() {
   const [weather, setWeather] = useState(null);
   const [marketPrices, setMarketPrices] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     fetchWeather();
@@ -45,6 +63,7 @@ function App() {
       return;
     }
 
+    setIsLoading(true);
     try {
       const res = await axios.post(`${process.env.REACT_APP_URL}/chat`, {
         question,
@@ -54,11 +73,15 @@ function App() {
     } catch (err) {
       console.error('Chat error:', err);
       setAnswer('Something went wrong. Try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSpeak = async () => {
-    if (!answer) return;
+    if (!answer || isSpeaking) return;
+    
+    setIsSpeaking(true);
     try {
       const res = await axios.post(
         `${process.env.REACT_APP_URL}/tts`,
@@ -68,73 +91,236 @@ function App() {
       const audioUrl = URL.createObjectURL(res.data);
       const audio = new Audio(audioUrl);
       audio.play();
+      audio.onended = () => setIsSpeaking(false);
     } catch (err) {
       console.error('TTS error:', err);
+      setIsSpeaking(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleAsk();
     }
   };
 
   return (
-    <div style={{ fontFamily: 'Arial', padding: '2rem', maxWidth: '900px', margin: 'auto' }}>
-      <h1> 👨‍🌾 AI Farming</h1>
+    <div className="app">
+      {/* Hero Section */}
+      <motion.div 
+        className="hero"
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <motion.div 
+          className="hero-content"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <motion.div 
+            className="logo"
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+          >
+            <Leaf size={48} />
+          </motion.div>
+          <h1>AI Farming Assistant</h1>
+          <p>Your intelligent companion for modern farming</p>
+        </motion.div>
+      </motion.div>
 
-      <div>
-        <label>Select Language: </label>
-        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-          <option value="en">English</option>
-          <option value="ta">தமிழ் (Tamil)</option>
-        </select>
-      </div>
+      {/* Main Content */}
+      <div className="container">
+        {/* Language Selection */}
+        <motion.div 
+          className="language-selector"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Globe size={20} />
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)}
+            className="language-dropdown"
+          >
+            <option value="en">English</option>
+            <option value="ta">தமிழ் (Tamil)</option>
+          </select>
+        </motion.div>
 
-      <div style={{ marginTop: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Ask your farming question..."
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          style={{ padding: '0.5rem', width: '80%' }}
-        />
-        <button onClick={handleAsk} style={{ marginLeft: '0.5rem', padding: '0.5rem' }}>
-          Ask
-        </button>
-      </div>
-
-      {answer && (
-        <div style={{ marginTop: '1rem' }}>
-          <h3>Answer:</h3>
-          <p>{answer}</p>
-          <button onClick={handleSpeak}>🔊 Speak</button>
-        </div>
-      )}
-
-      {(weather || marketPrices.length > 0) && (
-        <>
-          <h2 style={{ marginTop: '2rem' }}>📊 Today's Farming Dashboard</h2>
-          {lastUpdated && <p><em>Last updated: {lastUpdated}</em></p>}
-        </>
-      )}
-
-      <div style={{ display: 'flex', marginTop: '1rem', gap: '2rem' }}>
-        {weather && (
-          <div style={{ flex: 1, backgroundColor: '#e8f5e9', padding: '1rem', borderRadius: '8px' }}>
-            <h3>🌤 Weather Info</h3>
-            <p><strong>City:</strong> {weather.city}</p>
-            <p><strong>Temperature:</strong> {weather.temperature}°C</p>
-            <p><strong>Description:</strong> {weather.description}</p>
+        {/* Chat Interface */}
+        <motion.div 
+          className="chat-container"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="Ask your farming question..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="question-input"
+              disabled={isLoading}
+            />
+            <motion.button 
+              onClick={handleAsk}
+              className="ask-button"
+              disabled={isLoading || !question.trim()}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isLoading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <RefreshCw size={20} />
+                </motion.div>
+              ) : (
+                <Bot size={20} />
+              )}
+              <span>{isLoading ? 'Thinking...' : 'Ask'}</span>
+            </motion.button>
           </div>
-        )}
 
-        {marketPrices.length > 0 && (
-          <div style={{ flex: 1, backgroundColor: '#fff3e0', padding: '1rem', borderRadius: '8px' }}>
-            <h3>📈 Market Prices</h3>
-            <ul>
-              {marketPrices.slice(0, 5).map((item, index) => (
-                <li key={index}>
-                  <strong>{item.commodity}</strong> - ₹{item.price} ({item.market})
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          <AnimatePresence>
+            {answer && (
+              <motion.div 
+                className="answer-container"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="answer-header">
+                  <Sparkles size={20} />
+                  <h3>AI Response</h3>
+                  <motion.button 
+                    onClick={handleSpeak}
+                    className="speak-button"
+                    disabled={isSpeaking}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    {isSpeaking ? (
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.5, repeat: Infinity }}
+                      >
+                        <MicOff size={18} />
+                      </motion.div>
+                    ) : (
+                      <Mic size={18} />
+                    )}
+                  </motion.button>
+                </div>
+                <div className="answer-text">
+                  {answer}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Dashboard */}
+        <AnimatePresence>
+          {(weather || marketPrices.length > 0) && (
+            <motion.div 
+              className="dashboard"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+            >
+              <div className="dashboard-header">
+                <h2>📊 Today's Farming Dashboard</h2>
+                {lastUpdated && (
+                  <motion.p 
+                    className="last-updated"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                  >
+                    Last updated: {lastUpdated}
+                  </motion.p>
+                )}
+              </div>
+
+              <div className="dashboard-grid">
+                {weather && (
+                  <motion.div 
+                    className="weather-card"
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="card-header">
+                      <Cloud size={24} />
+                      <h3>Weather Info</h3>
+                    </div>
+                    <div className="weather-details">
+                      <div className="weather-item">
+                        <Sun size={18} />
+                        <span><strong>City:</strong> {weather.city}</span>
+                      </div>
+                      <div className="weather-item">
+                        <Droplets size={18} />
+                        <span><strong>Temperature:</strong> {weather.temperature}°C</span>
+                      </div>
+                      <div className="weather-item">
+                        <Wind size={18} />
+                        <span><strong>Description:</strong> {weather.description}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {marketPrices.length > 0 && (
+                  <motion.div 
+                    className="market-card"
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1.2 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="card-header">
+                      <TrendingUp size={24} />
+                      <h3>Market Prices</h3>
+                    </div>
+                    <div className="market-list">
+                      {marketPrices.slice(0, 5).map((item, index) => (
+                        <motion.div 
+                          key={index}
+                          className="market-item"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: 1.4 + (index * 0.1) }}
+                        >
+                          <div className="commodity-name">
+                            <strong>{item.commodity}</strong>
+                          </div>
+                          <div className="commodity-price">
+                            ₹{item.price}
+                          </div>
+                          <div className="commodity-market">
+                            {item.market}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
